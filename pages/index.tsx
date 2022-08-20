@@ -15,7 +15,7 @@ const Home: NextPage = () => {
 		const state = JSON.parse(rawState || "{}")
 
 		if (!code) return
-		fetch(`http://localhost:3000/api/login/${code}`).then(async res => {
+		fetch(`/api/login/${code}`).then(async res => {
 			setDbs(await res.json())
 		})
 	}, [])
