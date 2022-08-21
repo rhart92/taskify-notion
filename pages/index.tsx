@@ -3,7 +3,9 @@ import { useEffect, useState } from "react"
 
 const Home: NextPage = () => {
 	const [dbs, setDbs] = useState<any[]>([])
+
 	useEffect(() => {
+		console.log('use effect')
 		const params = new URL(window.document.location.href).searchParams
 		// When Notion OAuth redirects you to `localhost:3000`, it will add a `code`
 		// param to the URL (e.g. `localhost:3000?code="..."&state="..."`). State is
@@ -14,13 +16,24 @@ const Home: NextPage = () => {
 
 		const state = JSON.parse(rawState || "{}")
 
+		const abortController = new AbortController()
+
 		if (!code) return
-		fetch(`/api/login/${code}`).then(async res => {
-			setDbs(await res.json())
-		})
+		fetch(`/api/login/${code}`, { signal: abortController.signal }).then(
+			async res => {
+				setDbs(await res.json())
+			}
+		)
+
+		// Handle the double mount
+		return () => {
+			console.log('cancelling request')
+			abortController.abort()
+		}
 	}, [])
+
 	const state = { page: "home" }
-	console.log(process.env.NEXT_PUBLIC_OAUTH_CLIENT_ID)
+
 	return (
 		<div>
 			<a

@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js"
 import type { NextApiRequest, NextApiResponse } from "next"
 
 // Pull from SDK
@@ -31,6 +32,14 @@ export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse<any[]>
 ) {
+	const url = process.env.SUPABASE_URL
+	const key = process.env.SUPABASE_KEY
+	if (!url || !key) {
+		throw new Error("Missing database creds")
+	}
+
+	const supabase = createClient(url, key)
+
 	// Path params are moved to query params by Next JS internals 🤔
 	const { code } = req.query
 
@@ -61,12 +70,26 @@ export default async function handler(
 
 	console.log(tokenResponse)
 
+	// Add to the DB
+	try {
+		const postgresResponse = await supabase.from("token").upsert({
+			access_token: tokenResponse.access_token,
+			bot_id: tokenResponse.bot_id,
+			workspace_name: tokenResponse.workspace_name,
+			workspace_id: tokenResponse.workspace_id,
+			user_id: tokenResponse.owner.user.id,
+			user_name: tokenResponse.owner.user.name,
+		})
+		console.log(JSON.stringify(postgresResponse))
+	} catch(err) {
+		console.log(err)
+	}
+
 	const searchResponse = await notionSearch(tokenResponse.access_token)
 
 	console.log(searchResponse)
 
 	res.status(200).json(searchResponse["results"])
-
 }
 
 async function notionSearch(token: string) {
